@@ -1,0 +1,111 @@
+<html>
+    <head>
+        <title>
+            Hello World
+        </title>
+        <link rel='stylesheet' href='/stylesheet/style.css'/>
+    
+    </head>
+    <script>
+    function co(id,x,y)
+    {
+        this.id=id;
+        this.x=x;
+        this.y=y;
+    }
+
+  function mainFun()
+    {
+       
+        var file=document.getElementById("fileInput").files[0];
+        var reader=new FileReader();
+        reader.readAsText(file);
+        reader.onload=function(e)
+        {
+            var str = this.result;//读取文本
+            var number = new Array();
+            for(var k=0;k<26800;k++)
+            {    //一维长度为i,i为变量，可以根据实际情况改变
+               number[k]=new co(-1,-1.0,-1.0);  //声明二维，每一个一维数组里面的一个元素都是一个数组；	
+            }
+    
+            number=digitalExtraction(str,number);
+
+            //draw(digitalExtraction(str,number));//画图
+        }
+        
+    }
+    function digitalExtraction(str,number)
+    {
+        
+        var heap= str.replace(/[^0-9.,LEND]/ig,"B");
+        var numcharacter="";//存储数字字符
+        var line;
+              
+        var index=0;//数组id
+        var flag=3;//heap字符串当前标记
+        var n=0;//标识数字与字符转换位置
+        var character=heap[flag];//获取字符串的一个字符
+        number[0].id=1;
+
+        while(character!=null)
+        {
+            if(character=="E")
+            {
+                if(heap[flag+5]=="E")
+                    break;
+                flag+=5;
+                character=heap[flag];
+                while(character!="B")
+                {
+                    numcharacter+=character;
+                    flag++;
+                    character=heap[flag];
+                }
+                number[index].id=parseFloat(numcharacter);
+                numcharacter="";
+                flag+=2;
+                character=heap[flag];
+            }
+            else if(character=="B")
+            {
+                number[index].y=parseFloat(numcharacter);
+                flag+=2;
+                character=heap[flag];
+                numcharacter="";
+                index++;
+                continue;
+               
+            }
+            else if(character==",")
+            {
+                number[index].x=parseFloat(numcharacter);
+                if(number[index].id==-1)
+                    number[index].id=number[index-1].id;
+                character=heap[++flag];
+                numcharacter="";
+                continue;
+            }
+            else
+            {
+                numcharacter+=character;
+                character=heap[++flag];
+                continue;
+            }
+        }
+        return number;
+    }
+
+
+
+
+
+
+    </script>
+    
+        <body>
+                <input id="fileInput" type="file" onchange="mainFun()">
+        </body>
+            
+            
+    </html>
