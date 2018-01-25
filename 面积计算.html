@@ -1,0 +1,301 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>
+            面积计算
+        </title>
+        
+    
+    </head>
+    <script>
+    function co(id,x,y)
+    {
+        this.id=id;
+        this.x=x;
+        this.y=y;
+    }
+    function mainFun()
+    {
+        var canvas=document.getElementById('myCanvas');   
+        var ctx=canvas.getContext('2d');
+        canvas.height=canvas.height;
+       
+        var fun=parseInt(document.getElementById("type").value);
+        var file=document.getElementById("fileInput").files[0];
+        var reader=new FileReader();
+        reader.readAsText(file);
+        reader.onload=function(e)
+        {
+            var str = this.result;//读取文本
+            var number = new Array();
+            for(var k=0;k<63000;k++)
+            {    //一维长度为i,i为变量，可以根据实际情况改变
+               number[k]=new co(-1,-1.0,-1.0);  //声明二维，每一个一维数组里面的一个元素都是一个数组；	
+            }
+    
+            number=digitalExtraction(str,number);
+            switch(fun)
+            {
+                case 1:
+                rawMap(number);
+                break;
+                case 2:
+                inverseProj(number);
+                break;
+            }
+            
+        }
+        
+    }
+    function digitalExtraction(str,number)
+    {
+        
+        var heap= str.replace(/[^0-9.,-LEND]/ig,"B");
+        var numcharacter="";//存储数字字符
+        var line;
+              
+        var index=0;//数组id
+        var flag=3;//heap字符串当前标记
+        var n=0;//标识数字与字符转换位置
+        var character=heap[flag];//获取字符串的一个字符
+        number[0].id=1;
+        while(character!=null)
+        {
+            if(character=="E")
+            {
+                if(heap[flag+5]=="E")
+                    break;
+                flag+=5;
+                character=heap[flag];
+                while(character!="B")
+                {
+                    numcharacter+=character;
+                    flag++;
+                    character=heap[flag];
+                }
+        
+                number[index].id=number[index-1].id+1;
+                numcharacter="";
+                flag+=2;
+                character=heap[flag];
+            }
+            else if(character=="B")
+            {
+                number[index].y=parseFloat(numcharacter);
+            
+                flag+=2;
+                character=heap[flag];
+                numcharacter="";
+                index++;
+                continue;
+               
+            }
+            else if(character==",")
+            {
+             
+                number[index].x=parseFloat(numcharacter);
+                if(number[index].id==-1)
+                    number[index].id=number[index-1].id;
+                character=heap[++flag];
+                numcharacter="";
+                continue;
+            }
+            else
+            {
+                numcharacter+=character;
+                character=heap[++flag];
+                continue;
+            }
+        }
+        return number;
+    }
+    function findCenter(number)
+    {
+        var center=new Array();
+        var minX=number[0].x,minY=number[0].y,maxX=number[0].x,maxY=number[0].y;
+        for(var i=0;number[i].x!=-1;i++)
+        {
+            if(number[i].x>maxX)
+            maxX=number[i].x;
+            if(number[i].y>maxY)
+            maxY=number[i].y;
+            if(number[i].x<minX)
+            minX=number[i].x;
+            if(number[i].y<minY)
+            minY=number[i].y;
+        }
+        center[0]=(minX+maxX)/2;
+        center[1]=(minY+maxY)/2;
+        return center;
+    }
+    function rawMap(number)
+    {
+        var centerX,centerY;
+        var center=findCenter(number);
+        centerX=center[0];centerY=center[1];
+        for(var i=0;number[i].x!=-1;i++)
+        {
+            number[i].x=(number[i].x-centerX)/1000;
+            number[i].y=(number[i].y-centerY)/1000;
+      
+        }
+        draw(number);
+        
+    }
+    function draw(number)
+    {
+        var canvas=document.getElementById('myCanvas');   
+        var ctx=canvas.getContext('2d');
+        ctx.beginPath();
+        var tempX,tempY;
+        tempX=number[0].x+500;
+        tempY=400-number[0].y;                 
+        ctx.moveTo(tempX,tempY);
+        for(var i=1;number[i].x!=-1;i++)
+        {
+            if(number[i].id!=number[i-1].id)
+            {
+                ctx.stroke();
+                ctx.beginPath();       
+                tempX=number[i].x+500;
+                tempY=400-number[i].y;      
+                ctx.moveTo(tempX,tempY);
+                continue;
+            }
+          
+            tempX=number[i].x+500;
+            tempY=400-number[i].y; 
+            ctx.lineTo(tempX,tempY);
+            //ctx.stroke();
+     
+        }
+        ctx.stroke();
+        ctx.font="15px Arial";
+        ctx.textAlign="right";        
+    }
+    function inverseProj(number)
+    {
+        var K;
+        var B0,B,B1,c;
+        var a,b,e,e1;
+        var L,L0;
+        var X;
+        var Y;                  
+        var pi=Math.PI;
+        B0=32; B1=30;
+        a=6378245;b=6356863.01877;
+        e=Math.sqrt((a*a-b*b)/(a*a));
+        e1=Math.sqrt((a*a-b*b)/(b*b));
+        L0=118;
+        K=((a*a/b)/(Math.sqrt(1+e1*e1*Math.cos(B0*pi/180)*Math.cos(B0*pi/180))))*Math.cos(B0*pi/180);
+       
+        for(var i=0;number[i].x!=-1;i++)
+        {                                    
+            Y=number[i].x;
+            X=number[i].y;
+            L=Y/K+L0;
+            while(1)
+            {
+                B=pi/2-2*Math.atan(Math.exp(-X/K)*Math.exp((e/2)*Math.log((1-(e*Math.sin(B1*Math.PI/180)))/(1+(e*Math.sin(B1*Math.PI/180))))));
+                c=Math.abs(B-B1);
+                if(c<0.0000001)
+                    break;
+                else
+                    B1=B;             
+            }
+            number[i].x=L;
+            number[i].y=B;
+               
+        }
+        var centerX,centerY;
+        var center=findCenter(number);
+        centerX=center[0];centerY=center[1];
+        for(var i=0;number[i].x!=-1;i++)
+        {
+            number[i].x=(number[i].x-centerX)*6000;
+            number[i].y=(number[i].y-centerY)*6000;
+        }
+        draw(number);
+        computeArea(number);
+    }
+    function computeArea(number)
+    {
+        var city=new Array();//每个的城市面积
+        var x,y,x1,y1,x2,y2;//多边形外一点p，多边形的点
+        var cityline=new Array();//单个城市边界
+        var s=0;
+        var num=0;
+        var n=0;
+        var len=0;
+        x=0; y=0;//多边形外一点，设为（0,0）点
+        cityline[0]=number[0].x;
+        cityline[1]=number[1].y;
+        for(var i=2;number[i].x!=-1;i++)
+        {
+            if(number[i].id==number[i-1].id)
+            {//将某个地级市存数据存入
+                cityline[num++]=number[i].x;
+                cityline[num++]=number[i].y;
+            }
+            else
+            {
+                //计算面积
+                for(var j=0;j<(num-1);j++)
+                {
+                    x1=cityline[j%num];
+                    y1=cityline[(++j)%num];
+                    x2=cityline[(j+1)%num];
+                    y2=cityline[(j+2)%num];
+                
+                    s+=-(x1*y2-y1*x2);
+                }
+                city[n++]=s;
+                cityline = [];
+                num=0;
+                s=0;
+                i++;
+            }
+        }
+        var canvas=document.getElementById('myCanvas');   
+        var ctx=canvas.getContext('2d');
+        s=0;
+        var times=0;
+        ctx.font="20px Arial";
+        for(var i=0;i<n;i++)
+        {
+            
+            s+=city[i];
+            if(city[i]>0)
+            {
+                times++;
+                ctx.textAlign="start";
+                var word=String(city[i]);
+                var index=String(i);
+                i++
+                ctx.fillText("No."+i+"="+s,0,500+times*15);
+                i--;  
+            }
+            
+        }
+        ctx.font="30px Arial";
+        //ctx.textAlign="center";
+        var word=String(s/2);
+        ctx.fillText("总面积为："+s/2,500,20);  
+    
+    }
+</script>
+    
+        <body>
+                <input id="fileInput" type="file" ><br>
+                <select name="" id="type"> 
+                    <option value="1">江苏省地图</option> 
+                    <option value="2">江苏省地图墨卡托反算</option> 
+                </select>
+                <br>
+                <input type="button" onclick="mainFun()" value="确定"> <br>
+                <canvas id="myCanvas" width="1000" height="800" style="border:1px solid #747272">your browser does not support the canvas tag </canvas>
+                
+        </body>
+            
+            
+    </html>
